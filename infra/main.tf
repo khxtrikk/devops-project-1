@@ -7,9 +7,10 @@ module "networking" {
   source = "./networking" # Path to your networking module
 
   vpc_cidr             = "10.0.0.0/16"
-  public_subnet_cidrs  = ["10.0.1.0/24", "10.0.2.0/24"]
-  private_subnet_cidrs = ["10.0.11.0/24", "10.0.12.0/24"]
-  environment          = "dev"
+  vpc_name             = "rest-api-vpc"                 # NEW: Required missing argument
+  cidr_public_subnet   = "10.0.1.0/24"                  # NEW: Required missing argument (using only the first CIDR)
+  cidr_private_subnet  = "10.0.11.0/24"                 # NEW: Required missing argument (using only the first CIDR)
+  eu_availability_zone = "eu-west-1a"
 }
 
 # -----------------------------------------------------------------------------
