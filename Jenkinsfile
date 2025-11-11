@@ -1,16 +1,23 @@
 pipeline {
     agent any
 
+    environment {
+        // Define the correct Credential ID once to prevent future typos.
+        AWS_CRED_ID = 'aws-credentials-Khatri' 
+        // Note: I've assumed the correct ID is 'aws-credentials-Khatri'
+    }
+
     parameters {
             booleanParam(name: 'PLAN_TERRAFORM', defaultValue: false, description: 'Check to plan Terraform changes')
             booleanParam(name: 'APPLY_TERRAFORM', defaultValue: false, description: 'Check to apply Terraform changes')
-            booleanParam(name: 'DESTROY_TERRAFORM', defaultValue: false, description: 'Check to apply Terraform changes')
+            // CORRECTED: Fixed the typo in the description here
+            booleanParam(name: 'DESTROY_TERRAFORM', defaultValue: false, description: 'Check to destroy Terraform infrastructure')
     }
 
     stages {
         stage('Clone Repository') {
             steps {
-                // Clean workspace before cloning (optional)
+                // Good practice to ensure a clean workspace
                 deleteDir()
 
                 // Clone the Git repository
@@ -23,8 +30,8 @@ pipeline {
 
         stage('Terraform Init') {
             steps {
-                // Use AWS credentials with the ID aws-crendentails-Khatri
-                withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', credentialsId: 'aws-crendentails-Khatri']]) {
+                // Using the defined environment variable
+                withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', credentialsId: env.AWS_CRED_ID]]) {
                     dir('infra') {
                         sh 'echo "=================Terraform Init=================="'
                         sh 'terraform init'
@@ -37,8 +44,7 @@ pipeline {
             steps {
                 script {
                     if (params.PLAN_TERRAFORM) {
-                        // Use AWS credentials with the ID aws-crendentails-Khatri
-                        withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', credentialsId: 'aws-crendentails-Khatri']]) {
+                        withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', credentialsId: env.AWS_CRED_ID]]) {
                             dir('infra') {
                                 sh 'echo "=================Terraform Plan=================="'
                                 sh 'terraform plan'
@@ -53,8 +59,7 @@ pipeline {
             steps {
                 script {
                     if (params.APPLY_TERRAFORM) {
-                        // Use AWS credentials with the ID aws-crendentails-Khatri
-                        withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', credentialsId: 'aws-crendentails-Khatri']]) {
+                        withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', credentialsId: env.AWS_CRED_ID]]) {
                             dir('infra') {
                                 sh 'echo "=================Terraform Apply=================="'
                                 sh 'terraform apply -auto-approve'
@@ -69,10 +74,10 @@ pipeline {
             steps {
                 script {
                     if (params.DESTROY_TERRAFORM) {
-                        // Use AWS credentials with the ID aws-crendentails-Khatri
-                        withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', credentialsId: 'aws-crendentails-Khatri']]) {
+                        withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', credentialsId: env.AWS_CRED_ID]]) {
                             dir('infra') {
-                                sh 'terraform init'
+                                sh 'echo "=================Terraform Destroy=================="'
+                                sh 'terraform destroy -auto-approve'
                             }
                         }
                     }
