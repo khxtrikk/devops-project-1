@@ -1,4 +1,4 @@
-# Removed modules: alb, lb_target_group, aws_ceritification_manager, hosted_zone.
+# main.tf
 
 # -----------------------------------------------------------------------------
 # 1. NETWORKING (VPC, Subnets)
@@ -6,11 +6,16 @@
 module "networking" {
   source = "./networking" # Path to your networking module
 
-  vpc_cidr             = "10.0.0.0/16"
-  vpc_name             = "rest-api-vpc"                 # NEW: Required missing argument
-  cidr_public_subnet   = "10.0.1.0/24"                  # NEW: Required missing argument (using only the first CIDR)
-  cidr_private_subnet  = "10.0.11.0/24"                 # NEW: Required missing argument (using only the first CIDR)
-  eu_availability_zone = "eu-west-1a"
+  # Arguments required by the networking module based on variables.tf:
+  vpc_cidr             = var.vpc_cidr
+  vpc_name             = var.vpc_name
+  cidr_public_subnet   = var.cidr_public_subnet   # Note: This is a list(string)
+  cidr_private_subnet  = var.cidr_private_subnet  # Note: This is a list(string)
+  eu_availability_zone = var.eu_availability_zone # Note: This is a list(string)
+  
+  # Assuming your networking module uses the 'environment' and 'name' variables for tags:
+  environment = var.environment
+  name        = var.name
 }
 
 # -----------------------------------------------------------------------------
@@ -19,15 +24,13 @@ module "networking" {
 module "security_group" {
   source = "./security-groups" # Path to your security group module
 
+  # Assuming your security group module expects these variables:
   vpc_id      = module.networking.dev_proj_1_vpc_id
-  environment = "dev"
-
+  environment = var.environment
+  
   # IMPORTANT: We need to expose the application port (e.g., 5000) 
   # directly to the internet (0.0.0.0/0) since the ALB is removed.
-  app_port = 5000
-
-  # Assuming the EC2 security group module now accepts an "app_port" variable
-  # and opens it up to 0.0.0.0/0 for testing purposes.
+  app_port = 5000 
 }
 
 # -----------------------------------------------------------------------------
@@ -36,25 +39,21 @@ module "security_group" {
 module "ec2" {
   source = "./ec2" # Path to your EC2 module
 
-  # --- Required Arguments (Added/Fixed based on console output errors) ---
-  # NOTE: Replace all "YOUR_..." placeholders with actual values.
-
-  ami_id                     = "ami-0abcdef1234567890"        # Missing: Replace with your chosen AMI ID (e.g., Ubuntu/Amazon Linux)
-  instance_type              = "t2.micro"                     # Missing: Replace with your desired instance type
-  tag_name                   = "rest-api-server-dev"          # Missing: Name tag for the EC2 instance
-  public_key                 = file("YOUR_SSH_KEY_NAME.pub")  # Missing: Path to your SSH public key file
-  user_data_install_apache   = ""                             # Missing: Can be an empty string or a path to a script (e.g., file("./install.sh"))
-  enable_public_ip_address   = true                           # Missing: Set to 'true' to ensure a public IP is assigned
-  sg_enable_ssh_https        = true                           # Missing: Boolean to control ports 22/443 on the SG
-  ec2_sg_name_for_python_api = "ec2-app-sg"                   # Missing: Name for the EC2 Security Group
-
-  # --- Existing & Supported Arguments ---
+  # Required EC2 variables based on your previous errors (using variables.tf now):
+  ami_id                     = var.ec2_ami_id
+  instance_type              = "t2.micro"                  # PLACEHOLDER: Define this as a variable or hardcode
+  tag_name                   = var.name
+  public_key                 = var.public_key
+  user_data_install_apache   = var.ec2_user_data_install_apache
+  
+  # Assuming these boolean flags are still required by your EC2 module:
+  enable_public_ip_address   = true
+  sg_enable_ssh_https        = true 
+  ec2_sg_name_for_python_api = "${var.name}-ec2-sg"          # Assuming a dynamic name based on 'name'
+  
+  # Assuming these resources are still required by your EC2 module:
   subnet_id                  = module.networking.dev_proj_1_public_subnets[0]
-
-  # --- Arguments Removed (Unsupported based on console output errors) ---
-  # vpc_id (removed)
-  # security_group_id (removed - likely handled internally by the module now)
-  # environment (removed)
+  security_group_id          = module.security_group.sg_ec2_sg_ssh_http_id
 }
 
 # -----------------------------------------------------------------------------
@@ -63,15 +62,16 @@ module "ec2" {
 module "rds_db_instance" {
   source = "./rds" # Path to your RDS module
 
-  mysql_db_identifier    = "rest-api-db-instance"        # NEW: Required missing argument
-  mysql_username         = "appuser"                     # NEW: Required missing argument
-  mysql_password         = "YOUR_SECURE_PASSWORD"        # NEW: Required missing argument (USE SECRETS OR VAULT FOR REAL DEPLOYMENTS)
-  mysql_dbname           = "rest_api_db"                 # NEW: Required missing argument
-  db_subnet_group_name   = "rest-api-db-sg"              # NEW: Required missing argument
-  subnet_groups          = module.networking.dev_proj_1_private_subnets # NEW: Required missing argument (Assuming this takes the subnet list)
-  rds_mysql_sg_id        = module.security_group.sg_rds_db_sg_id # NEW: Required missing argument (Renamed to match module expectation)
-
-  # Add other required RDS variables here (engine, username, password, etc.)
+  # Required RDS variables based on your previous errors:
+  mysql_db_identifier    = "${var.name}-rds"                 # Using 'name' for identifier
+  mysql_username         = "appuser"                         # PLACEHOLDER: Define this as a variable or hardcode
+  mysql_password         = "zack"            # PLACEHOLDER: Use a secure method (see previous advice)
+  mysql_dbname           = "${var.name}_db"                  # Using 'name' for DB name
+  db_subnet_group_name   = "${var.name}-db-sg"               # Using 'name' for subnet group name
+  
+  # Linking to other resources:
+  subnet_groups          = module.networking.dev_proj_1_private_subnets 
+  rds_mysql_sg_id        = module.security_group.sg_rds_db_sg_id
 }
 
 # -----------------------------------------------------------------------------
