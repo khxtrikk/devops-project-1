@@ -15,28 +15,30 @@ pipeline {
 
                 // Clone the Git repository
                 git branch: 'main',
-                    url: 'https://github.com/rahulwagh/devops-project-1.git'
+                    url: 'https://github.com/khxtrikk/devops-project-1.git'
 
                 sh "ls -lart"
             }
         }
 
         stage('Terraform Init') {
-                    steps {
-                       withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', credentialsId: 'aws-crendentails-rwagh']]){
-                            dir('infra') {
-                            sh 'echo "=================Terraform Init=================="'
-                            sh 'terraform init'
-                        }
+            steps {
+                // Use AWS credentials with the ID aws-crendentails-Khatri
+                withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', credentialsId: 'aws-crendentails-Khatri']]) {
+                    dir('infra') {
+                        sh 'echo "=================Terraform Init=================="'
+                        sh 'terraform init'
                     }
                 }
+            }
         }
 
         stage('Terraform Plan') {
             steps {
                 script {
                     if (params.PLAN_TERRAFORM) {
-                       withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', credentialsId: 'aws-crendentails-rwagh']]){
+                        // Use AWS credentials with the ID aws-crendentails-Khatri
+                        withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', credentialsId: 'aws-crendentails-Khatri']]) {
                             dir('infra') {
                                 sh 'echo "=================Terraform Plan=================="'
                                 sh 'terraform plan'
@@ -51,7 +53,8 @@ pipeline {
             steps {
                 script {
                     if (params.APPLY_TERRAFORM) {
-                       withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', credentialsId: 'aws-crendentails-rwagh']]){
+                        // Use AWS credentials with the ID aws-crendentails-Khatri
+                        withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', credentialsId: 'aws-crendentails-Khatri']]) {
                             dir('infra') {
                                 sh 'echo "=================Terraform Apply=================="'
                                 sh 'terraform apply -auto-approve'
@@ -66,7 +69,8 @@ pipeline {
             steps {
                 script {
                     if (params.DESTROY_TERRAFORM) {
-                       withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', credentialsId: 'aws-crendentails-rwagh']]){
+                        // Use AWS credentials with the ID aws-crendentails-Khatri
+                        withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', credentialsId: 'aws-crendentails-Khatri']]) {
                             dir('infra') {
                                 sh 'echo "=================Terraform Destroy=================="'
                                 sh 'terraform destroy -auto-approve'
