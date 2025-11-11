@@ -79,7 +79,12 @@ module "ec2" {
   instance_type                  = "t2.micro"
   ami_id                         = var.ec2_ami_id
   ec2_security_groups            = [module.security_group.sg_ec2_sg_ssh_http_id] # FIX: Correct argument name for the EC2 module
-  user_data                      = templatefile("${path.module}/ec2/user_data.tpl", { rds_endpoint = module.rds_db_instance.db_instance_endpoint })
+  user_data                      = templatefile("${path.module}/ec2_user_data.tpl", {
+    rds_host     = module.rds_db_instance.db_instance_host
+    db_user      = "project1user"
+    db_password  = "project1dbpassword"
+    db_name      = "project1db"
+  })
   tags = {
     Name        = var.name
     Environment = var.environment

@@ -60,27 +60,6 @@ variable "ec2_ami_id" {
   default     = "ami-09b9f29104c96996d" 
 }
 
-variable "ec2_user_data_install_apache" {
-  type        = string
-  description = "Script for installing the application"
-  # This user data remains as is, but your Jenkins pipeline must inject the DB_HOST.
-  default     = <<-EOF
-              #!/bin/bash
-              sudo yum update -y
-              sudo yum install docker -y
-              sudo service docker start
-              sudo usermod -a -G docker ec2-user
-              docker pull khxtrikk/rest-api:latest
-              
-              docker run -d -p 8080:8080 \
-              -e DB_HOST=PROJECT1DB_ENDPOINT_PLACEHOLDER \
-              -e DB_USER=project1user \
-              -e DB_PASSWORD=project1dbpassword \
-              -e DB_NAME=project1db \
-              --name rest-api khxtrikk/rest-api:latest
-              EOF
-}
-
 variable "tfstate_bucket_name" {
   type        = string
   description = "Remote state bucket name"
