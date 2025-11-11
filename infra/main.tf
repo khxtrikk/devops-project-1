@@ -32,6 +32,7 @@ module "security_group" {
 
   # FIX 2: Add the required ec2_sg_name
   ec2_sg_name = "webapp-ec2-sg"
+  app_port                 = 8080
 }
 
 # -----------------------------------------------------------------------------
