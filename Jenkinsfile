@@ -89,5 +89,24 @@ pipeline {
                 }
             }
         }
+
+        stage('Output Deployment Details') {
+            when {
+                expression { params.APPLY_TERRAFORM }
+            }
+            steps {
+                script {
+                    withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', credentialsId: env.AWS_CRED_ID]]) {
+                        dir('infra') {
+                            sh 'echo "=================Terraform Outputs=================="'
+                            sh 'terraform output'
+                            sh 'echo ""'
+                            sh 'echo "Deployment completed successfully!"'
+                            sh 'echo "Access your application at: http://$(terraform output -raw alb_dns_name)"'
+                        }
+                    }
+                }
+            }
+        }
     }
 }
