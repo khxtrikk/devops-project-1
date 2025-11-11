@@ -1,3 +1,4 @@
+/* 
 variable "lb_name" {}
 variable "lb_type" {}
 variable "is_external" { default = false }
@@ -67,3 +68,4 @@ resource "aws_lb_listener" "dev_proj_1_lb_https_listner" {
     target_group_arn = var.lb_target_group_arn
   }
 }
+*/

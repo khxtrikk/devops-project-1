@@ -1,3 +1,4 @@
+/*
 variable "lb_target_group_name" {}
 variable "lb_target_group_port" {}
 variable "lb_target_group_protocol" {}
@@ -29,3 +30,4 @@ resource "aws_lb_target_group_attachment" "dev_proj_1_lb_target_group_attachment
   target_id        = var.ec2_instance_id
   port             = 5000
 }
+*/

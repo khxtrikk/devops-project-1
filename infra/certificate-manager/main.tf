@@ -1,3 +1,4 @@
+/*
 variable "domain_name" {}
 variable "hosted_zone_id" {}
 
@@ -33,4 +34,5 @@ resource "aws_route53_record" "validation" {
   records = [each.value.record]
   ttl     = 60
 }
+*/
 

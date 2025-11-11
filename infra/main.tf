@@ -1,10 +1,3 @@
-/*module "s3" {
-  source      = "./s3"
-  bucket_name = var.bucket_name
-  name        = var.name
-  environment = var.bucket_name
-}*/
-
 module "networking" {
   source               = "./networking"
   vpc_cidr             = var.vpc_cidr
@@ -30,7 +23,7 @@ module "ec2" {
   public_key               = var.public_key
   subnet_id                = tolist(module.networking.dev_proj_1_public_subnets)[0]
   sg_enable_ssh_https      = module.security_group.sg_ec2_sg_ssh_http_id
-  ec2_sg_name_for_python_api     = module.security_group.sg_ec2_for_python_api
+  ec2_sg_name_for_python_api = module.security_group.sg_ec2_for_python_api
   enable_public_ip_address = true
   user_data_install_apache = templatefile("./template/ec2_install_apache.sh", {})
 }

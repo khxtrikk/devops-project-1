@@ -1,3 +1,4 @@
+/*
 variable "domain_name" {}
 variable "aws_lb_dns_name" {}
 variable "aws_lb_zone_id" {}
@@ -22,3 +23,4 @@ resource "aws_route53_record" "lb_record" {
 output "hosted_zone_id" {
   value = data.aws_route53_zone.dev_proj_1_jhooq_org.zone_id
 }
+*/
