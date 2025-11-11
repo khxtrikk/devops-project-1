@@ -72,8 +72,7 @@ pipeline {
                         // Use AWS credentials with the ID aws-crendentails-Khatri
                         withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', credentialsId: 'aws-crendentails-Khatri']]) {
                             dir('infra') {
-                                sh 'echo "=================Terraform Destroy=================="'
-                                sh 'terraform destroy -auto-approve'
+                                sh 'terraform init'
                             }
                         }
                     }
