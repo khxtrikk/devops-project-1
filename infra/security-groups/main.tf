@@ -1,7 +1,14 @@
 variable "ec2_sg_name" {}
 variable "vpc_id" {}
 variable "public_subnet_cidr_block" {}
-variable "ec2_sg_name_for_python_api" {}
+# Removed: variable "ec2_sg_name_for_python_api" {}
+
+# New variable for the application port (passed from infra/main.tf)
+variable "app_port" {
+  description = "The port the Python API application runs on (e.g., 5000)."
+  type        = number
+}
+
 
 output "sg_ec2_sg_ssh_http_id" {
   value = aws_security_group.ec2_sg_ssh_http.id
@@ -11,14 +18,13 @@ output "rds_mysql_sg_id" {
   value = aws_security_group.rds_mysql_sg.id
 }
 
-output "sg_ec2_for_python_api" {
-  value = aws_security_group.ec2_sg_python_api.id
-}
+# Removed: output "sg_ec2_for_python_api" because that SG is removed.
 
-# Security Group for EC2 - SSH (22), HTTP (80), HTTPS (443)
+
+# Security Group for EC2 - SSH (22) and Application Port (e.g., 5000)
 resource "aws_security_group" "ec2_sg_ssh_http" {
   name        = var.ec2_sg_name
-  description = "Allow SSH (22), HTTP (80), and HTTPS (443) to EC2"
+  description = "Allow SSH (22) and Application Port (${var.app_port}) to EC2 from anywhere"
   vpc_id      = var.vpc_id
 
   # SSH for remote access
@@ -30,23 +36,17 @@ resource "aws_security_group" "ec2_sg_ssh_http" {
     protocol    = "tcp"
   }
 
-  # HTTP traffic
+  # Application Port (e.g., 5000) for direct public access
   ingress {
-    description = "Allow HTTP request from anywhere"
+    description = "Allow traffic to the application port from anywhere"
     cidr_blocks = ["0.0.0.0/0"]
-    from_port   = 80
-    to_port     = 80
+    from_port   = var.app_port
+    to_port     = var.app_port
     protocol    = "tcp"
   }
 
-  # HTTPS traffic
-  ingress {
-    description = "Allow HTTPS request from anywhere"
-    cidr_blocks = ["0.0.0.0/0"]
-    from_port   = 443
-    to_port     = 443
-    protocol    = "tcp"
-  }
+  # Removed: Ingress rule for HTTP (80)
+  # Removed: Ingress rule for HTTPS (443)
 
   # Outbound traffic: Allow all outbound requests
   egress {
@@ -58,7 +58,7 @@ resource "aws_security_group" "ec2_sg_ssh_http" {
   }
 
   tags = {
-    Name = "EC2 SG to allow SSH(22), HTTP(80), and HTTPS(443)"
+    Name = "EC2 SG to allow SSH and App Port"
   }
 }
 
@@ -70,10 +70,11 @@ resource "aws_security_group" "rds_mysql_sg" {
 
   # Only allow EC2 instances to connect to MySQL (port 3306)
   ingress {
-    from_port                = 3306
-    to_port                  = 3306
-    protocol                 = "tcp"
-    security_groups          = [aws_security_group.ec2_sg_ssh_http.id]
+    from_port             = 3306
+    to_port               = 3306
+    protocol              = "tcp"
+    # This correctly references the EC2 Security Group ID
+    security_groups       = [aws_security_group.ec2_sg_ssh_http.id]
   }
 
   # Outbound traffic: Allow all outbound requests
@@ -89,31 +90,5 @@ resource "aws_security_group" "rds_mysql_sg" {
   }
 }
 
-# Security Group for Python API - Allow traffic on port 5000 from ALB only
-resource "aws_security_group" "ec2_sg_python_api" {
-  name        = var.ec2_sg_name_for_python_api
-  description = "Allow traffic on port 5000 for Python API"
-  vpc_id      = var.vpc_id
-
-  # Allow traffic from the load balancer (ALB)
-  ingress {
-    description = "Allow traffic on port 5000 from ALB only"
-    from_port   = 5000
-    to_port     = 5000
-    protocol    = "tcp"
-    security_groups = [aws_security_group.dev_proj_1_lb.id]  # Assuming ALB security group is named "dev_proj_1_lb"
-  }
-
-  # Outbound traffic: Allow all outbound requests
-  egress {
-    description = "Allow outgoing requests"
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
-  tags = {
-    Name = "EC2 SG for Python API on port 5000"
-  }
-}
+# Removed: The entire 'aws_security_group.ec2_sg_python_api' resource, 
+# as it was dependent on the now-removed ALB.
