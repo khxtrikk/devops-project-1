@@ -11,7 +11,7 @@ cidr_private_subnet  = ["10.0.3.0/24", "10.0.4.0/24"]   # Private subnets CIDR b
 eu_availability_zone = ["eu-west-1a", "eu-west-1b"]  # Availability Zones
 
 # EC2 Key and Instance Configuration
-public_key = "YOUR_EC2_KEY_PAIR_NAME"               # Replace with your actual EC2 key pair name (e.g., "my-devops-key")
+public_key = "aws_ec2_terraform"               # Replace with your actual EC2 key pair name (e.g., "my-devops-key")
 ec2_ami_id     = "ami-0d2a4a5d69e46ea0b"               # Amazon Linux 2 AMI for eu-west-1 (Ireland)
 
 # EC2 User Data Script
