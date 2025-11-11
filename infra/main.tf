@@ -63,10 +63,13 @@ module "ec2" {
 module "rds_db_instance" {
   source = "./rds" # Path to your RDS module
 
-  vpc_id          = module.networking.dev_proj_1_vpc_id
-  private_subnets = module.networking.dev_proj_1_private_subnets
-  db_sg_id        = module.security_group.sg_rds_db_sg_id
-  environment     = "dev"
+  mysql_db_identifier    = "rest-api-db-instance"        # NEW: Required missing argument
+  mysql_username         = "appuser"                     # NEW: Required missing argument
+  mysql_password         = "YOUR_SECURE_PASSWORD"        # NEW: Required missing argument (USE SECRETS OR VAULT FOR REAL DEPLOYMENTS)
+  mysql_dbname           = "rest_api_db"                 # NEW: Required missing argument
+  db_subnet_group_name   = "rest-api-db-sg"              # NEW: Required missing argument
+  subnet_groups          = module.networking.dev_proj_1_private_subnets # NEW: Required missing argument (Assuming this takes the subnet list)
+  rds_mysql_sg_id        = module.security_group.sg_rds_db_sg_id # NEW: Required missing argument (Renamed to match module expectation)
 
   # Add other required RDS variables here (engine, username, password, etc.)
 }
