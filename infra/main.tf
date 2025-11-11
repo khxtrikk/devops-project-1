@@ -5,7 +5,7 @@
 # -----------------------------------------------------------------------------
 module "networking" {
   source = "./networking" # Path to your networking module
-  
+
   vpc_cidr             = "10.0.0.0/16"
   public_subnet_cidrs  = ["10.0.1.0/24", "10.0.2.0/24"]
   private_subnet_cidrs = ["10.0.11.0/24", "10.0.12.0/24"]
@@ -18,13 +18,13 @@ module "networking" {
 module "security_group" {
   source = "./security-groups" # Path to your security group module
 
-  vpc_id = module.networking.dev_proj_1_vpc_id
+  vpc_id      = module.networking.dev_proj_1_vpc_id
   environment = "dev"
-  
+
   # IMPORTANT: We need to expose the application port (e.g., 5000) 
   # directly to the internet (0.0.0.0/0) since the ALB is removed.
-  app_port = 5000 
-  
+  app_port = 5000
+
   # Assuming the EC2 security group module now accepts an "app_port" variable
   # and opens it up to 0.0.0.0/0 for testing purposes.
 }
@@ -35,12 +35,25 @@ module "security_group" {
 module "ec2" {
   source = "./ec2" # Path to your EC2 module
 
-  vpc_id          = module.networking.dev_proj_1_vpc_id
-  subnet_id       = module.networking.dev_proj_1_public_subnets[0]
-  security_group_id = module.security_group.sg_ec2_sg_ssh_http_id # Using the updated SG
-  environment     = "dev"
-  
-  # Add other required EC2 variables here (AMI, instance_type, key_name, etc.)
+  # --- Required Arguments (Added/Fixed based on console output errors) ---
+  # NOTE: Replace all "YOUR_..." placeholders with actual values.
+
+  ami_id                     = "ami-0abcdef1234567890"        # Missing: Replace with your chosen AMI ID (e.g., Ubuntu/Amazon Linux)
+  instance_type              = "t2.micro"                     # Missing: Replace with your desired instance type
+  tag_name                   = "rest-api-server-dev"          # Missing: Name tag for the EC2 instance
+  public_key                 = file("YOUR_SSH_KEY_NAME.pub")  # Missing: Path to your SSH public key file
+  user_data_install_apache   = ""                             # Missing: Can be an empty string or a path to a script (e.g., file("./install.sh"))
+  enable_public_ip_address   = true                           # Missing: Set to 'true' to ensure a public IP is assigned
+  sg_enable_ssh_https        = true                           # Missing: Boolean to control ports 22/443 on the SG
+  ec2_sg_name_for_python_api = "ec2-app-sg"                   # Missing: Name for the EC2 Security Group
+
+  # --- Existing & Supported Arguments ---
+  subnet_id                  = module.networking.dev_proj_1_public_subnets[0]
+
+  # --- Arguments Removed (Unsupported based on console output errors) ---
+  # vpc_id (removed)
+  # security_group_id (removed - likely handled internally by the module now)
+  # environment (removed)
 }
 
 # -----------------------------------------------------------------------------
@@ -53,7 +66,7 @@ module "rds_db_instance" {
   private_subnets = module.networking.dev_proj_1_private_subnets
   db_sg_id        = module.security_group.sg_rds_db_sg_id
   environment     = "dev"
-  
+
   # Add other required RDS variables here (engine, username, password, etc.)
 }
 
