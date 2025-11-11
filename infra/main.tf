@@ -119,10 +119,10 @@ module "load-balancer-target-group" {
 }
 
 module "load-balancer-listener" {
-  source                 = "./load-balancer-listener"
+  source                 = "./load-balancer-listener" # <-- MUST have the path here
   load_balancer_arn      = module.load-balancer.load_balancer_arn
   target_group_arn       = module.load-balancer-target-group.target_group_arn
-  listener_port          = 80 # ALB listener port (standard HTTP)
+  listener_port          = 80 
   listener_protocol      = "HTTP"
   default_action_type    = "forward"
   tags = {
