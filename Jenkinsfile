@@ -34,7 +34,7 @@ pipeline {
                 withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', credentialsId: env.AWS_CRED_ID]]) {
                     dir('infra') {
                         sh 'echo "=================Terraform Init=================="'
-                        sh 'terraform init'
+                        sh 'terraform init -reconfigure'
                     }
                 }
             }
@@ -47,9 +47,12 @@ pipeline {
                         withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', credentialsId: env.AWS_CRED_ID]]) {
                             dir('infra') {
                                 sh 'echo "=================Terraform Plan=================="'
-                                sh 'terraform plan'
+                                sh 'terraform plan -out=tfplan'
+                                sh 'terraform show tfplan'
                             }
                         }
+                    } else {
+                        echo "Skipping Terraform Plan - set PLAN_TERRAFORM=true to run"
                     }
                 }
             }
@@ -62,9 +65,11 @@ pipeline {
                         withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', credentialsId: env.AWS_CRED_ID]]) {
                             dir('infra') {
                                 sh 'echo "=================Terraform Apply=================="'
-                                sh 'terraform apply -auto-approve'
+                                sh 'terraform apply -auto-approve tfplan || terraform apply -auto-approve'
                             }
                         }
+                    } else {
+                        echo "Skipping Terraform Apply - set APPLY_TERRAFORM=true to run"
                     }
                 }
             }

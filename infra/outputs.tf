@@ -1,23 +1,29 @@
-output "dev_proj_1_vpc_id" {
-  value = module.networking.dev_proj_1_vpc_id
+output "alb_dns_name" {
+  description = "The DNS name of the Application Load Balancer"
+  value       = module.load-balancer.load_balancer_dns_name
 }
 
-output "sg_ec2_sg_ssh_http_id" {
-  value = module.security_group.sg_ec2_sg_ssh_http_id
+output "rds_endpoint" {
+  description = "The RDS database endpoint"
+  value       = module.rds_db_instance.db_instance_endpoint
 }
 
-output "rds_mysql_sg_id" {
-  value = module.security_group.rds_mysql_sg_id
+output "rds_host" {
+  description = "The hostname of the RDS instance"
+  value       = module.rds_db_instance.db_instance_host
 }
 
-output "sg_ec2_for_python_api" {
-  value = module.security_group.sg_ec2_for_python_api
+output "ec2_public_ip" {
+  description = "The public IP of the EC2 instance"
+  value       = module.ec2.ec2_public_ip
 }
 
-output "ec2_ssh_string" {
-  value = module.ec2.ssh_connection_string_for_ec2
+output "ec2_id" {
+  description = "The ID of the EC2 instance"
+  value       = module.ec2.ec2_id
 }
 
-output "hosted_zone_id" {
-  value = module.hosted_zone.hosted_zone_id
+output "vpc_id" {
+  description = "The VPC ID"
+  value       = module.networking.vpc_id
 }

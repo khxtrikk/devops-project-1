@@ -1,71 +1,62 @@
-/* 
-variable "lb_name" {}
-variable "lb_type" {}
-variable "is_external" { default = false }
-variable "sg_enable_ssh_https" {}
-variable "subnet_ids" {}
-variable "tag_name" {}
-variable "lb_target_group_arn" {}
-variable "ec2_instance_id" {}
-variable "lb_listner_port" {}
-variable "lb_listner_protocol" {}
-variable "lb_listner_default_action" {}
-variable "lb_https_listner_port" {}
-variable "lb_https_listner_protocol" {}
-variable "dev_proj_1_acm_arn" {}
-variable "lb_target_group_attachment_port" {}
-
-output "aws_lb_dns_name" {
-  value = aws_lb.dev_proj_1_lb.dns_name
+# Variables for the Application Load Balancer
+variable "load_balancer_name" {
+  description = "Name of the Application Load Balancer"
+  type        = string
 }
 
-output "aws_lb_zone_id" {
-  value = aws_lb.dev_proj_1_lb.zone_id
+variable "load_balancer_type" {
+  description = "Type of Load Balancer (application or network)"
+  type        = string
+  default     = "application"
 }
 
+variable "internal" {
+  description = "Whether the Load Balancer is internal or external"
+  type        = bool
+  default     = false
+}
 
+variable "subnets" {
+  description = "List of subnet IDs for the Load Balancer"
+  type        = list(string)
+}
+
+variable "security_groups" {
+  description = "List of security group IDs for the Load Balancer"
+  type        = list(string)
+}
+
+variable "tags" {
+  description = "Tags to apply to the Load Balancer"
+  type        = map(string)
+  default     = {}
+}
+
+# Outputs
+output "load_balancer_dns_name" {
+  description = "DNS name of the load balancer"
+  value       = aws_lb.dev_proj_1_lb.dns_name
+}
+
+output "load_balancer_arn" {
+  description = "ARN of the load balancer"
+  value       = aws_lb.dev_proj_1_lb.arn
+}
+
+output "load_balancer_zone_id" {
+  description = "Zone ID of the load balancer"
+  value       = aws_lb.dev_proj_1_lb.zone_id
+}
+
+# Application Load Balancer
 resource "aws_lb" "dev_proj_1_lb" {
-  name               = var.lb_name
-  internal           = var.is_external
-  load_balancer_type = var.lb_type
-  security_groups    = [var.sg_enable_ssh_https]
-  subnets            = var.subnet_ids # Replace with your subnet IDs
+  name               = var.load_balancer_name
+  internal           = var.internal
+  load_balancer_type = var.load_balancer_type
+  security_groups    = var.security_groups
+  subnets            = var.subnets
 
   enable_deletion_protection = false
 
-  tags = {
-    Name = "example-lb"
-  }
+  tags = var.tags
 }
-
-resource "aws_lb_target_group_attachment" "dev_proj_1_lb_target_group_attachment" {
-  target_group_arn = var.lb_target_group_arn
-  target_id        = var.ec2_instance_id # Replace with your EC2 instance reference
-  port             = var.lb_target_group_attachment_port
-}
-
-resource "aws_lb_listener" "dev_proj_1_lb_listner" {
-  load_balancer_arn = aws_lb.dev_proj_1_lb.arn
-  port              = var.lb_listner_port
-  protocol          = var.lb_listner_protocol
-
-  default_action {
-    type             = var.lb_listner_default_action
-    target_group_arn = var.lb_target_group_arn
-  }
-}
-
-# https listner on port 443
-resource "aws_lb_listener" "dev_proj_1_lb_https_listner" {
-  load_balancer_arn = aws_lb.dev_proj_1_lb.arn
-  port              = var.lb_https_listner_port
-  protocol          = var.lb_https_listner_protocol
-  ssl_policy        = "ELBSecurityPolicy-FS-1-2-Res-2019-08"
-  certificate_arn   = var.dev_proj_1_acm_arn
-
-  default_action {
-    type             = var.lb_listner_default_action
-    target_group_arn = var.lb_target_group_arn
-  }
-}
-*/

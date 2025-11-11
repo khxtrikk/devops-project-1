@@ -1,25 +1,58 @@
 variable "ec2_sg_name" {}
 variable "vpc_id" {}
 variable "public_subnet_cidr_block" {}
-# Removed: variable "ec2_sg_name_for_python_api" {}
-
-# New variable for the application port (passed from infra/main.tf)
 variable "app_port" {
-  description = "The port the Python API application runs on (e.g., 5000)."
+  description = "The port the Python API application runs on (e.g., 5000 or 8080)."
   type        = number
 }
-
 
 output "sg_ec2_sg_ssh_http_id" {
   value = aws_security_group.ec2_sg_ssh_http.id
 }
 
-output "rds_mysql_sg_id" {
-  value = aws_security_group.rds_mysql_sg.id
+output "sg_rds_id" {
+  description = "Security group ID for RDS"
+  value       = aws_security_group.rds_mysql_sg.id
 }
 
-# Removed: output "sg_ec2_for_python_api" because that SG is removed.
+output "rds_mysql_sg_id" {
+  description = "Security group ID for RDS (legacy output name)"
+  value       = aws_security_group.rds_mysql_sg.id
+}
 
+output "sg_alb_id" {
+  description = "Security group ID for ALB"
+  value       = aws_security_group.alb_sg.id
+}
+
+# Security Group for ALB - HTTP (80) from anywhere
+resource "aws_security_group" "alb_sg" {
+  name        = "${var.ec2_sg_name}-alb"
+  description = "Allow HTTP (80) to ALB from anywhere"
+  vpc_id      = var.vpc_id
+
+  # HTTP for public access
+  ingress {
+    description = "Allow HTTP from anywhere"
+    cidr_blocks = ["0.0.0.0/0"]
+    from_port   = 80
+    to_port     = 80
+    protocol    = "tcp"
+  }
+
+  # Outbound traffic: Allow all outbound requests
+  egress {
+    description = "Allow outgoing requests"
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  tags = {
+    Name = "ALB Security Group"
+  }
+}
 
 # Security Group for EC2 - SSH (22) and Application Port (e.g., 5000)
 resource "aws_security_group" "ec2_sg_ssh_http" {
@@ -89,6 +122,3 @@ resource "aws_security_group" "rds_mysql_sg" {
     Name = "RDS SG to allow MySQL access from EC2"
   }
 }
-
-# Removed: The entire 'aws_security_group.ec2_sg_python_api' resource, 
-# as it was dependent on the now-removed ALB.

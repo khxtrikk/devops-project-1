@@ -3,17 +3,49 @@ variable "vpc_name" {}
 variable "cidr_public_subnet" {}
 variable "eu_availability_zone" {}
 variable "cidr_private_subnet" {}
+variable "tags" {
+  type    = map(string)
+  default = {}
+}
+
+output "vpc_id" {
+  description = "The VPC ID"
+  value       = aws_vpc.dev_proj_1_vpc_eu_central_1.id
+}
 
 output "dev_proj_1_vpc_id" {
-  value = aws_vpc.dev_proj_1_vpc_eu_central_1.id
+  description = "The VPC ID (legacy output name)"
+  value       = aws_vpc.dev_proj_1_vpc_eu_central_1.id
+}
+
+output "public_subnets" {
+  description = "List of public subnet IDs"
+  value       = aws_subnet.dev_proj_1_public_subnets[*].id
 }
 
 output "dev_proj_1_public_subnets" {
-  value = aws_subnet.dev_proj_1_public_subnets.*.id
+  description = "List of public subnet IDs (legacy output name)"
+  value       = aws_subnet.dev_proj_1_public_subnets[*].id
+}
+
+output "private_subnets" {
+  description = "List of private subnet IDs"
+  value       = aws_subnet.dev_proj_1_private_subnets[*].id
+}
+
+output "dev_proj_1_private_subnets" {
+  description = "List of private subnet IDs (legacy output name)"
+  value       = aws_subnet.dev_proj_1_private_subnets[*].id
+}
+
+output "db_subnet_group_name" {
+  description = "The name of the DB subnet group (will be created by RDS module)"
+  value       = "dev-proj-1-db-subnet-group"
 }
 
 output "public_subnet_cidr_block" {
-  value = aws_subnet.dev_proj_1_public_subnets.*.cidr_block
+  description = "CIDR blocks of public subnets"
+  value       = aws_subnet.dev_proj_1_public_subnets[*].cidr_block
 }
 
 # Setup VPC

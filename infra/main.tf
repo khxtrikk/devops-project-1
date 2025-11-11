@@ -8,11 +8,11 @@ terraform {
   }
 
   backend "s3" {
-    bucket         = "devops-project-1-tfstate-bucket"
+    bucket         = "dev-project-remote-statebucket-12"
     key            = "devops/project1/terraform.tfstate"
-    region         = "eu-north-1"
+    region         = "eu-west-1"
     encrypt        = true
-    dynamodb_table = "devops-project-1-tfstate-lock"
+    dynamodb_table = "terraform-locks"
   }
 }
 
@@ -54,6 +54,7 @@ module "rds_db_instance" {
   db_instance_class            = "db.t3.micro"
   db_password                  = "project1dbpassword"
   db_subnet_group_name         = module.networking.db_subnet_group_name
+  db_private_subnets           = module.networking.private_subnets
   vpc_security_group_ids       = [module.security_group.sg_rds_id]
   db_publicly_accessible       = false
   db_skip_final_snapshot       = true
@@ -118,34 +119,29 @@ module "load-balancer-target-group" {
   }
 }
 
-module "load-balancer-listener" {
-  source                 = "./load-balancer-listener" # <-- MUST have the path here
-  load_balancer_arn      = module.load-balancer.load_balancer_arn
-  target_group_arn       = module.load-balancer-target-group.target_group_arn
-  listener_port          = 80 
-  listener_protocol      = "HTTP"
-  default_action_type    = "forward"
-  tags = {
-    Name        = var.name
-    Environment = var.environment
+# --- ALB Listener ---
+resource "aws_lb_listener" "alb_listener" {
+  load_balancer_arn = module.load-balancer.load_balancer_arn
+  port              = 80
+  protocol          = "HTTP"
+
+  default_action {
+    type             = "forward"
+    target_group_arn = module.load-balancer-target-group.target_group_arn
   }
 }
+
+# --- Target Group Attachment ---
+resource "aws_lb_target_group_attachment" "ec2_target" {
+  target_group_arn = module.load-balancer-target-group.target_group_arn
+  target_id        = module.ec2.ec2_id
+  port             = 8080
+}
+
+
 
 
 # --- Domain/SSL-Related Modules (REMOVED) ---
 # Removed 'module "hosted-zone"'
 # Removed 'module "certificate-manager"'
 # Removed 'module "route-53"'
-
-
-# --- Outputs ---
-
-output "alb_dns_name" {
-  description = "The DNS name of the Application Load Balancer"
-  value       = module.load-balancer.load_balancer_dns_name
-}
-
-output "rds_endpoint" {
-  description = "The RDS database endpoint"
-  value       = module.rds_db_instance.db_instance_endpoint
-}

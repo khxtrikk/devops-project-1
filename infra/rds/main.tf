@@ -1,59 +1,151 @@
-variable "db_subnet_group_name" {}
-variable "subnet_groups" {}             # private subnet IDs
-variable "rds_mysql_sg_id" {}          # RDS security group ID
-variable "mysql_db_identifier" {}
-variable "mysql_username" {}
-variable "mysql_password" {}
-variable "mysql_dbname" {}
+# RDS Module Variables
+variable "db_name" {
+  description = "The name of the database"
+  type        = string
+}
 
-# RDS Subnet Group (private subnets)
+variable "db_instance_identifier" {
+  description = "The identifier for the database instance"
+  type        = string
+}
+
+variable "db_instance_class" {
+  description = "The database instance class"
+  type        = string
+  default     = "db.t3.micro"
+}
+
+variable "db_password" {
+  description = "The password for the database user"
+  type        = string
+  sensitive   = true
+}
+
+variable "db_subnet_group_name" {
+  description = "Name of the DB subnet group"
+  type        = string
+}
+
+variable "db_private_subnets" {
+  description = "List of private subnet IDs for the DB subnet group"
+  type        = list(string)
+  default     = []
+}
+
+variable "vpc_security_group_ids" {
+  description = "List of security group IDs for the RDS instance"
+  type        = list(string)
+}
+
+variable "db_publicly_accessible" {
+  description = "Whether the database is publicly accessible"
+  type        = bool
+  default     = false
+}
+
+variable "db_skip_final_snapshot" {
+  description = "Whether to skip the final snapshot"
+  type        = bool
+  default     = true
+}
+
+variable "db_storage_type" {
+  description = "The storage type (gp2, io1, etc.)"
+  type        = string
+  default     = "gp2"
+}
+
+variable "db_allocated_storage" {
+  description = "The allocated storage size in GB"
+  type        = number
+  default     = 20
+}
+
+variable "db_engine" {
+  description = "The database engine (mysql, postgres, etc.)"
+  type        = string
+  default     = "mysql"
+}
+
+variable "db_engine_version" {
+  description = "The database engine version"
+  type        = string
+  default     = "8.0"
+}
+
+variable "db_port" {
+  description = "The database port"
+  type        = number
+  default     = 3306
+}
+
+variable "db_username" {
+  description = "The master username for the database"
+  type        = string
+}
+
+variable "tags" {
+  description = "Tags to apply to the RDS instance"
+  type        = map(string)
+  default     = {}
+}
+
+# RDS Subnet Group (for private subnets)
 resource "aws_db_subnet_group" "dev_proj_1_db_subnet_group" {
   name       = var.db_subnet_group_name
-  subnet_ids = var.subnet_groups
+  subnet_ids = length(var.db_private_subnets) > 0 ? var.db_private_subnets : []
 
   tags = {
-    Name = "dev-proj-1-db-subnet-group"
+    Name = "${var.db_subnet_group_name}-subnet-group"
   }
 }
 
-# RDS Security Group (allow EC2 access)
-resource "aws_security_group_rule" "allow_ec2_to_rds" {
-  type              = "ingress"
-  from_port         = 3306
-  to_port           = 3306
-  protocol          = "tcp"
-  security_group_id = var.rds_mysql_sg_id
-  source_security_group_id = var.rds_mysql_sg_id  # <-- Replace with your EC2 SG if different
-}
-
-# MySQL RDS instance
+# MySQL RDS Instance
 resource "aws_db_instance" "dev_proj_1_rds" {
-  allocated_storage       = 10
-  storage_type            = "gp2"
-  engine                  = "mysql"
-  engine_version          = "5.7"
-  instance_class          = "db.t2.micro"
-  identifier              = var.mysql_db_identifier
-  username                = var.mysql_username
-  password                = var.mysql_password
-  db_name                 = var.mysql_dbname
+  allocated_storage    = var.db_allocated_storage
+  storage_type         = var.db_storage_type
+  engine               = var.db_engine
+  engine_version       = var.db_engine_version
+  instance_class       = var.db_instance_class
+  identifier           = var.db_instance_identifier
+  username             = var.db_username
+  password             = var.db_password
+  db_name              = var.db_name
 
-  vpc_security_group_ids  = [var.rds_mysql_sg_id]
+  vpc_security_group_ids  = var.vpc_security_group_ids
   db_subnet_group_name    = aws_db_subnet_group.dev_proj_1_db_subnet_group.name
 
-  skip_final_snapshot     = true
-  apply_immediately       = true
-  backup_retention_period = 0
-  deletion_protection     = false
+  skip_final_snapshot       = var.db_skip_final_snapshot
+  apply_immediately         = true
+  backup_retention_period   = 0
+  deletion_protection       = false
+  publicly_accessible       = var.db_publicly_accessible
 
-  publicly_accessible     = false  # Important: keep it private
+  tags = merge(
+    var.tags,
+    {
+      Name = var.db_instance_identifier
+    }
+  )
 }
 
 # Outputs
-output "dev_proj_1_rds_endpoint" {
-  value = aws_db_instance.dev_proj_1_rds.endpoint
+output "db_instance_endpoint" {
+  description = "The endpoint of the RDS instance"
+  value       = aws_db_instance.dev_proj_1_rds.endpoint
 }
 
-output "dev_proj_1_rds_instance_id" {
-  value = aws_db_instance.dev_proj_1_rds.id
+output "db_instance_host" {
+  description = "The hostname of the RDS instance"
+  value       = aws_db_instance.dev_proj_1_rds.address
+}
+
+output "db_instance_id" {
+  description = "The ID of the RDS instance"
+  value       = aws_db_instance.dev_proj_1_rds.id
+}
+
+output "db_instance_port" {
+  description = "The port of the RDS instance"
+  value       = aws_db_instance.dev_proj_1_rds.port
 }
