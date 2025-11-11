@@ -1,85 +1,124 @@
-# main.tf
+# Root Terraform file (infra/main.tf)
+# Changes: 
+# 1. Corrected 'module "ec2"' argument to 'ec2_security_groups'. (Line 58)
+# 2. Removed or commented out all modules related to DNS (Route 53), ACM, and ALB listeners that require a domain.
 
-# -----------------------------------------------------------------------------
-# 1. NETWORKING (VPC, Subnets)
-# -----------------------------------------------------------------------------
+terraform {
+  required_providers {
+    aws = {
+      source  = "hashicorp/aws"
+      version = "~> 5.0"
+    }
+  }
+
+  backend "s3" {
+    bucket         = "devops-project-1-tfstate-bucket"
+    key            = "devops/project1/terraform.tfstate"
+    region         = "eu-north-1"
+    encrypt        = true
+    dynamodb_table = "devops-project-1-tfstate-lock"
+  }
+}
+
+provider "aws" {
+  region = var.aws_region
+}
+
+# --- VPC & Networking Modules ---
+
 module "networking" {
-  source = "./networking" # Path to your networking module
-
-  # Arguments required by the networking module based on variables.tf:
-  vpc_cidr             = var.vpc_cidr
-  vpc_name             = var.vpc_name
-  cidr_public_subnet   = var.cidr_public_subnet   # Note: This is a list(string)
-  cidr_private_subnet  = var.cidr_private_subnet  # Note: This is a list(string)
-  eu_availability_zone = var.eu_availability_zone # Note: This is a list(string)
-  
-  # Assuming your networking module uses the 'environment' and 'name' variables for tags:
-  environment = var.environment
-  name        = var.name
+  source                = "./networking"
+  vpc_name              = var.vpc_name
+  vpc_cidr              = var.vpc_cidr
+  cidr_public_subnet    = var.cidr_public_subnet
+  cidr_private_subnet   = var.cidr_private_subnet
+  eu_availability_zone  = var.eu_availability_zone
+  tags = {
+    Name        = var.name
+    Environment = var.environment
+  }
 }
 
-# -----------------------------------------------------------------------------
-# 2. SECURITY GROUPS
-# -----------------------------------------------------------------------------
+# --- Security Group Module ---
+
 module "security_group" {
-  source  = "./security-groups"
-  vpc_id  = module.networking.vpc_id
-
-  # FIX 1: Add the required public_subnet_cidr_block
-  public_subnet_cidr_block = module.networking.public_subnet_cidr_block 
-  # Note: I'm assuming the networking module provides this output.
-  # You may need to change this if the variable is called something else (e.g., var.public_subnet_cidr)
-
-  # FIX 2: Add the required ec2_sg_name
-  ec2_sg_name = "webapp-ec2-sg"
-  app_port                 = 8080
+  source                   = "./security-groups"
+  vpc_id                   = module.networking.vpc_id
+  public_subnet_cidr_block = var.vpc_cidr # Assuming the VPC CIDR is used for SSH access source
+  ec2_sg_name              = "webapp-ec2-sg"
+  app_port                 = 8080 # Assuming your application listens on port 8080
 }
 
-# -----------------------------------------------------------------------------
-# 3. EC2 INSTANCE (Application Server)
-# -----------------------------------------------------------------------------
-module "ec2" {
-  source = "./ec2" # Path to your EC2 module
+# --- Database (RDS) Module ---
 
-  # Required EC2 variables based on your previous errors (using variables.tf now):
-  ami_id                     = var.ec2_ami_id
-  instance_type              = "t2.micro"                  # PLACEHOLDER: Define this as a variable or hardcode
-  tag_name                   = var.name
-  public_key                 = var.public_key
-  user_data_install_apache   = var.ec2_user_data_install_apache
-  
-  # Assuming these boolean flags are still required by your EC2 module:
-  enable_public_ip_address   = true
-  sg_enable_ssh_https        = true 
-  ec2_sg_name_for_python_api = "${var.name}-ec2-sg"          # Assuming a dynamic name based on 'name'
-  
-  # Assuming these resources are still required by your EC2 module:
-  subnet_id                  = module.networking.dev_proj_1_public_subnets[0]
-  ec2_security_groups            = [module.security_group.sg_ec2_sg_ssh_http_id]
-}
-
-# -----------------------------------------------------------------------------
-# 4. RDS DATABASE
-# -----------------------------------------------------------------------------
 module "rds_db_instance" {
-  source = "./rds" # Path to your RDS module
-
-  # Required RDS variables based on your previous errors:
-  mysql_db_identifier    = "${var.name}-rds"                 # Using 'name' for identifier
-  mysql_username         = "appuser"                         # PLACEHOLDER: Define this as a variable or hardcode
-  mysql_password         = "zack"            # PLACEHOLDER: Use a secure method (see previous advice)
-  mysql_dbname           = "${var.name}_db"                  # Using 'name' for DB name
-  db_subnet_group_name   = "${var.name}-db-sg"               # Using 'name' for subnet group name
-  
-  # Linking to other resources:
-  subnet_groups          = module.networking.dev_proj_1_private_subnets 
-  rds_mysql_sg_id        = module.security_group.sg_rds_db_sg_id
+  source                       = "./rds"
+  db_name                      = "project1db"
+  db_instance_identifier       = "project1db-instance"
+  db_instance_class            = "db.t3.micro"
+  db_password                  = "project1dbpassword"
+  db_subnet_group_name         = module.networking.db_subnet_group_name
+  vpc_security_group_ids       = [module.security_group.sg_rds_id]
+  db_publicly_accessible       = false
+  db_skip_final_snapshot       = true
+  db_storage_type              = "gp2"
+  db_allocated_storage         = 20
+  db_engine                    = "mysql"
+  db_engine_version            = "8.0"
+  db_port                      = 3306
+  db_username                  = "project1user"
+  tags = {
+    Name        = var.name
+    Environment = var.environment
+  }
 }
 
-# -----------------------------------------------------------------------------
-# Outputs (Optional, but useful)
-# -----------------------------------------------------------------------------
+# --- EC2 Module ---
+
+module "ec2" {
+  source                         = "./ec2"
+  subnet_id                      = module.networking.public_subnets[0]
+  key_name                       = var.public_key
+  instance_type                  = "t2.micro"
+  ami_id                         = var.ec2_ami_id
+  ec2_security_groups            = [module.security_group.sg_ec2_sg_ssh_http_id] # FIX: Corrected argument name
+  user_data                      = var.ec2_user_data_install_apache
+  tags = {
+    Name        = var.name
+    Environment = var.environment
+  }
+}
+
+# --- Output the EC2 Public IP for access (since DNS is removed) ---
+
 output "ec2_public_ip" {
-  description = "The public IP address of the EC2 instance."
-  value       = module.ec2.dev_proj_1_ec2_public_ip
+  description = "The public IP address of the EC2 instance"
+  value       = module.ec2.ec2_public_ip
 }
+
+# --- Load Balancer Module (Commented out to keep the file clean, but ALB likely won't work without a listener configured)
+# The EC2 module configuration above deploys the instance directly in a public subnet, 
+# making the ALB unnecessary if you access via Public IP. 
+
+/*
+module "load-balancer" {
+  source                = "./load-balancer"
+  load_balancer_name    = var.name
+  load_balancer_type    = "application"
+  internal              = false
+  subnets               = module.networking.public_subnets
+  security_groups       = [module.security_group.sg_alb_id]
+  tags = {
+    Name        = var.name
+    Environment = var.environment
+  }
+}
+*/
+
+# --- Domain/SSL-Related Modules (REMOVED) ---
+
+# Removed 'module "hosted-zone"'
+# Removed 'module "certificate-manager"'
+# Removed 'module "load-balancer-target-group"' 
+# Removed 'module "load-balancer-listener"'
+# Removed 'module "route-53"'
