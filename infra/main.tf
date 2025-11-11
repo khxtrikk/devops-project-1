@@ -53,7 +53,7 @@ module "ec2" {
   
   # Assuming these resources are still required by your EC2 module:
   subnet_id                  = module.networking.dev_proj_1_public_subnets[0]
-  security_group_ids         = [module.security_group.sg_ec2_sg_ssh_http_id]
+  vpc_security_group_ids         = [module.security_group.sg_ec2_sg_ssh_http_id]
 }
 
 # -----------------------------------------------------------------------------
