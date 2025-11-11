@@ -1,6 +1,4 @@
-# Root Terraform variables file (infra/variables.tf)
-# Change: Removed 'domain_name' variable.
-
+# infra/variables.tf (Updated)
 variable "aws_region" {
   type        = string
   description = "AWS region"
@@ -53,20 +51,19 @@ variable "public_key" {
   type        = string
   description = "DevOps Project 1 Public key for EC2 instance"
   # You MUST replace the placeholder below with the actual name of your existing AWS Key Pair!
-  default     = "aws_ec2_terraform" 
+  default     = "YOUR_SSH_KEY_NAME_HERE" 
 }
 
 variable "ec2_ami_id" {
   type        = string
   description = "DevOps Project 1 AMI Id for EC2 instance"
-  # This AMI is for Amazon Linux 2 in eu-north-1. Verify this is correct for your region!
   default     = "ami-09b9f29104c96996d" 
 }
 
 variable "ec2_user_data_install_apache" {
   type        = string
   description = "Script for installing the application"
-  # This script now connects to the RDS instance via its Terraform output name instead of a hardcoded ENV var.
+  # This user data remains as is, but your Jenkins pipeline must inject the DB_HOST.
   default     = <<-EOF
               #!/bin/bash
               sudo yum update -y
@@ -74,11 +71,6 @@ variable "ec2_user_data_install_apache" {
               sudo service docker start
               sudo usermod -a -G docker ec2-user
               docker pull khxtrikk/rest-api:latest
-              
-              # Fetch RDS endpoint dynamically (Placeholder - Jenkins will inject the actual endpoint)
-              # NOTE: This script is for the initial setup. You will need to ensure your Jenkins pipeline 
-              # passes the correct RDS endpoint to your application's run command.
-              # The application needs: DB_HOST, DB_USER, DB_PASSWORD, DB_NAME
               
               docker run -d -p 8080:8080 \
               -e DB_HOST=PROJECT1DB_ENDPOINT_PLACEHOLDER \

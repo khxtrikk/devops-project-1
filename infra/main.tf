@@ -1,8 +1,4 @@
-# Root Terraform file (infra/main.tf)
-# Changes: 
-# 1. Corrected 'module "ec2"' argument to 'ec2_security_groups'. (Line 58)
-# 2. Removed or commented out all modules related to DNS (Route 53), ACM, and ALB listeners that require a domain.
-
+# infra/main.tf (Updated)
 terraform {
   required_providers {
     aws = {
@@ -44,9 +40,9 @@ module "networking" {
 module "security_group" {
   source                   = "./security-groups"
   vpc_id                   = module.networking.vpc_id
-  public_subnet_cidr_block = var.vpc_cidr # Assuming the VPC CIDR is used for SSH access source
+  public_subnet_cidr_block = var.vpc_cidr 
   ec2_sg_name              = "webapp-ec2-sg"
-  app_port                 = 8080 # Assuming your application listens on port 8080
+  app_port                 = 8080 # Assuming port 8080
 }
 
 # --- Database (RDS) Module ---
@@ -81,7 +77,7 @@ module "ec2" {
   key_name                       = var.public_key
   instance_type                  = "t2.micro"
   ami_id                         = var.ec2_ami_id
-  ec2_security_groups            = [module.security_group.sg_ec2_sg_ssh_http_id] # FIX: Corrected argument name
+  ec2_security_groups            = [module.security_group.sg_ec2_sg_ssh_http_id] # FIX: Correct argument name for the EC2 module
   user_data                      = var.ec2_user_data_install_apache
   tags = {
     Name        = var.name
@@ -89,18 +85,11 @@ module "ec2" {
   }
 }
 
-# --- Output the EC2 Public IP for access (since DNS is removed) ---
+# --- Load Balancer Module (Simplified) ---
 
-output "ec2_public_ip" {
-  description = "The public IP address of the EC2 instance"
-  value       = module.ec2.ec2_public_ip
-}
+# The original LB setup was for HTTPS (port 443) using ACM/Route53.
+# We are switching to a simple HTTP ALB on port 80.
 
-# --- Load Balancer Module (Commented out to keep the file clean, but ALB likely won't work without a listener configured)
-# The EC2 module configuration above deploys the instance directly in a public subnet, 
-# making the ALB unnecessary if you access via Public IP. 
-
-/*
 module "load-balancer" {
   source                = "./load-balancer"
   load_balancer_name    = var.name
@@ -113,12 +102,50 @@ module "load-balancer" {
     Environment = var.environment
   }
 }
-*/
+
+module "load-balancer-target-group" {
+  source                     = "./load-balancer-target-group"
+  vpc_id                     = module.networking.vpc_id
+  target_group_name          = var.name
+  target_group_port          = 8080 # The application port
+  target_type                = "instance"
+  target_group_protocol      = "HTTP"
+  target_group_health_check  = "/"
+  target_group_health_status = "200"
+  tags = {
+    Name        = var.name
+    Environment = var.environment
+  }
+}
+
+module "load-balancer-listener" {
+  source                 = "./load-balancer-listener"
+  load_balancer_arn      = module.load-balancer.load_balancer_arn
+  target_group_arn       = module.load-balancer-target-group.target_group_arn
+  listener_port          = 80 # ALB listener port (standard HTTP)
+  listener_protocol      = "HTTP"
+  default_action_type    = "forward"
+  tags = {
+    Name        = var.name
+    Environment = var.environment
+  }
+}
+
 
 # --- Domain/SSL-Related Modules (REMOVED) ---
-
 # Removed 'module "hosted-zone"'
 # Removed 'module "certificate-manager"'
-# Removed 'module "load-balancer-target-group"' 
-# Removed 'module "load-balancer-listener"'
 # Removed 'module "route-53"'
+
+
+# --- Outputs ---
+
+output "alb_dns_name" {
+  description = "The DNS name of the Application Load Balancer"
+  value       = module.load-balancer.load_balancer_dns_name
+}
+
+output "rds_endpoint" {
+  description = "The RDS database endpoint"
+  value       = module.rds_db_instance.db_instance_endpoint
+}
