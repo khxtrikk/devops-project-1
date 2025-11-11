@@ -22,15 +22,16 @@ module "networking" {
 # 2. SECURITY GROUPS
 # -----------------------------------------------------------------------------
 module "security_group" {
-  source = "./security-groups" # Path to your security group module
+  source  = "./security-groups"
+  vpc_id  = module.networking.vpc_id
 
-  # Assuming your security group module expects these variables:
-  vpc_id      = module.networking.dev_proj_1_vpc_id
-  environment = var.environment
-  
-  # IMPORTANT: We need to expose the application port (e.g., 5000) 
-  # directly to the internet (0.0.0.0/0) since the ALB is removed.
-  app_port = 5000 
+  # FIX 1: Add the required public_subnet_cidr_block
+  public_subnet_cidr_block = module.networking.public_subnet_cidr_block 
+  # Note: I'm assuming the networking module provides this output.
+  # You may need to change this if the variable is called something else (e.g., var.public_subnet_cidr)
+
+  # FIX 2: Add the required ec2_sg_name
+  ec2_sg_name = "webapp-ec2-sg"
 }
 
 # -----------------------------------------------------------------------------
